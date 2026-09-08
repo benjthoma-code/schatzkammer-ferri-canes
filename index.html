@@ -201,7 +201,7 @@
         <select id="inv-typ">
           <option>Waffe</option><option>Rüstung</option><option>Fokus / Zauberstab</option>
           <option>Trank</option><option>Schriftrolle</option><option>Wundersames Item</option>
-          <option>Munition</option><option>Werkzeug / Kit</option><option>Sonstiges</option>
+          <option>Munition</option><option>Werkzeug / Kit</option><option>Gegenstände zum Verkauf</option><option>Sonstiges</option>
         </select>
       </div>
     </div>
@@ -271,10 +271,18 @@
     <button class="mag" style="font-size:12px;padding:5px 12px" onclick="showAddForm()">+ Item hinzufügen</button>
   </div>
   <div class="inv-filter">
-    <button class="sec active" onclick="setFilter('alle',this)">Alle</button>
-    <button class="sec" onclick="setFilter('magisch',this)">✨ Magisch</button>
-    <button class="sec" onclick="setFilter('nid',this)">⚠ Nicht identifiziert</button>
-    <button class="sec" onclick="setFilter('bag',this)">🎒 Bag of Holding</button>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <select id="filter-typ" onchange="applyFilter()" style="font-size:13px;padding:5px 28px 5px 9px;width:auto;min-width:140px">
+        <option value="">Alle Typen</option>
+        <option>Waffe</option><option>Rüstung</option><option>Fokus / Zauberstab</option>
+        <option>Trank</option><option>Schriftrolle</option><option>Wundersames Item</option>
+        <option>Munition</option><option>Werkzeug / Kit</option><option>Gegenstände zum Verkauf</option><option>Sonstiges</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="sec" id="fbtn-magisch" onclick="toggleFBtn('magisch',this)">✨ Magisch</button>
+      <button class="sec" id="fbtn-nid" onclick="toggleFBtn('nid',this)">⚠ Nicht identifiziert</button>
+    </div>
   </div>
   <div id="inv-list"><div class="empty">Noch keine Items vorhanden</div></div>
 </div>
@@ -355,7 +363,9 @@ let state={pp:0,gp:0,sp:0,cp:0};
 let log=[];
 let items=[];
 let revision=0;  // wird beim Export hochgezählt und eingebettet
-let activeFilter='alle';
+let filterTyp='';
+let filterMagisch=false;
+let filterNid=false;
 let editingId=null;
 
 /* ── UTIL ───────────────────────────────────── */
@@ -576,11 +586,12 @@ const SEL_CLS={Common:'b-sel-common',Uncommon:'b-sel-uncommon',Rare:'b-sel-rare'
 function renderItems(){
   const el=document.getElementById('inv-list');
   let list=items;
-  if(activeFilter==='magisch')list=items.filter(i=>i.magisch);
-  else if(activeFilter==='nid')list=items.filter(i=>i.magisch&&!i.identifiziert);
-  else if(activeFilter==='bag')list=items.filter(i=>i.standort==='Bag of Holding');
+  if(filterTyp) list=list.filter(i=>i.typ===filterTyp);
+  if(filterMagisch) list=list.filter(i=>i.magisch);
+  if(filterNid) list=list.filter(i=>i.magisch&&!i.identifiziert);
+  const activeFilters=filterTyp||filterMagisch||filterNid;
   document.getElementById('inv-count').textContent='('+items.length+' Items)';
-  if(!list.length){el.innerHTML='<div class="empty">'+(activeFilter==='alle'?'Noch keine Items vorhanden':'Keine Items für diesen Filter')+'</div>';return}
+  if(!list.length){el.innerHTML='<div class="empty">'+(activeFilters?'Keine Items für diesen Filter':'Noch keine Items vorhanden')+'</div>';return}
   el.innerHTML=list.map(item=>{
     const menge=item.menge&&item.menge>1?item.menge:1;
     const mengeBadge=menge>1?`<span class="badge" style="background:#e8f0fe;color:#1a56db">×${menge}</span>`:'';
@@ -621,10 +632,19 @@ function renderItems(){
 </div>`}).join('');
 }
 
-function setFilter(f,btn){
-  activeFilter=f;
-  document.querySelectorAll('.inv-filter button').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+function applyFilter(){
+  filterTyp=document.getElementById('filter-typ').value;
+  renderItems();
+}
+function toggleFBtn(type,btn){
+  if(type==='magisch'){
+    filterMagisch=!filterMagisch;
+    if(filterMagisch){filterNid=false;document.getElementById('fbtn-nid').classList.remove('active');}
+  } else {
+    filterNid=!filterNid;
+    if(filterNid){filterMagisch=false;document.getElementById('fbtn-magisch').classList.remove('active');}
+  }
+  btn.classList.toggle('active',type==='magisch'?filterMagisch:filterNid);
   renderItems();
 }
 
