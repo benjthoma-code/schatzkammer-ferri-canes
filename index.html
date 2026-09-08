@@ -205,7 +205,7 @@
         </select>
       </div>
     </div>
-    <div class="fr fr3">
+    <div class="fr fr2">
       <div><label>Magisch?</label>
         <select id="inv-mag" onchange="toggleMagicFields()">
           <option value="nein">Nein</option>
@@ -222,11 +222,20 @@
           <option value="Legendary">Legendary</option>
         </select>
       </div>
+    </div>
+    <div class="fr fr2">
       <div id="inv-id-wrap"><label>Identifiziert?</label>
         <select id="inv-id">
           <option value="ja">Ja</option>
           <option value="nein">Nein</option>
         </select>
+      </div>
+      <div>
+        <label>Wert</label>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input type="number" id="inv-wert" min="0" placeholder="0" style="flex:1">
+          <span style="font-size:14px;font-weight:600;color:var(--text-sec);white-space:nowrap">GP</span>
+        </div>
       </div>
     </div>
     <div class="fr fr2">
@@ -507,6 +516,7 @@ function showAddForm(){
   document.getElementById('inv-sel').value='';
   document.getElementById('inv-id').value='ja';
   document.getElementById('inv-menge').value=1;
+  document.getElementById('inv-wert').value='';
   setLocField('Bag of Holding');
   toggleMagicFields();
   document.getElementById('err-inv').style.display='none';
@@ -520,6 +530,7 @@ function cancelEdit(){
   document.getElementById('inv-sel').value='';
   document.getElementById('inv-id').value='ja';
   document.getElementById('inv-menge').value=1;
+  document.getElementById('inv-wert').value='';
   setLocField('Bag of Holding');
   toggleMagicFields();
   document.getElementById('err-inv').style.display='none';
@@ -541,6 +552,7 @@ function saveItem(){
     traeger:document.getElementById('inv-traeger').value.trim(),
     eigenschaften:document.getElementById('inv-props').value.trim(),
     notizen:document.getElementById('inv-notes').value.trim(),
+    wert:parseFloat(document.getElementById('inv-wert').value)||null,
     erstellt:editingId?null:now(),
     geaendert:now()
   };
@@ -564,6 +576,7 @@ function editItem(id){
   document.getElementById('inv-props').value=item.eigenschaften||'';
   document.getElementById('inv-notes').value=item.notizen||'';
   document.getElementById('inv-menge').value=item.menge||1;
+  document.getElementById('inv-wert').value=item.wert!=null?item.wert:'';
   toggleMagicFields();
   sw('inventar');
   setTimeout(()=>document.getElementById('inv-form-box').scrollIntoView({behavior:'smooth',block:'nearest'}),50);
@@ -619,6 +632,7 @@ function renderItems(){
     <div class="item-detail-grid">
       <div><div class="lbl">Typ</div>${esc(item.typ)}</div>
       <div><div class="lbl">Anzahl</div>${menge}</div>
+      <div><div class="lbl">Wert</div>${item.wert!=null?item.wert.toLocaleString('de-DE')+' GP':'—'}</div>
       <div><div class="lbl">Seltenheit</div>${item.seltenheit||'—'}</div>
       <div><div class="lbl">Standort</div>${esc(item.standort||'—')}</div>
       <div><div class="lbl">Träger / Bemerkung</div>${item.traeger?esc(item.traeger):'—'}</div>
