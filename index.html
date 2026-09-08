@@ -110,7 +110,7 @@
 <div class="wrap">
 
 <h1>🪙 Gruppenschatzkammer von Ferri Canes</h1>
-<p style="font-size:13px;color:var(--text-sec);margin:0 0 1rem">D&D 2024 (5.5e). Daten werden lokal in diesem Browser gespeichert.</p>
+<p style="font-size:13px;color:var(--text-sec);margin:0 0 1rem">D&D 2024 (5.5e). Daten werden live in Firebase synchronisiert – alle Geräte sehen denselben Stand.</p>
 
 <div class="topbar">
   <div class="sbar" style="margin-bottom:0">
@@ -281,27 +281,19 @@
 
 <!-- EXPORT -->
 <div id="tab-export" style="display:none">
-  <div class="fc" style="border:2px solid var(--success);background:var(--success-bg)">
-    <h3 style="color:var(--success)">💾 Als HTML-Datei speichern</h3>
-    <p style="font-size:13px;color:var(--text-sec);margin:0 0 10px">Erzeugt eine neue HTML-Datei mit allen aktuellen Daten eingebettet. Diese Datei kannst du auf dem iPhone/iPad speichern und direkt in Safari öffnen – funktioniert ohne Internet und ohne Server.</p>
-    <div class="note">📱 <strong>Auf iOS:</strong> Nach dem Tippen erscheint unten ein grüner Link – antippen und „In Dateien laden" wählen. Die neue Datei enthält dann den aktuellen Stand.</div>
-    <div class="br">
-      <button class="suc" style="font-size:15px;padding:12px 24px" onclick="exportHTML()">💾 HTML-Datei erzeugen</button>
-    </div>
-  </div>
   <div class="fc">
-    <h3>HTML-Datei importieren</h3>
-    <p style="font-size:13px;color:var(--text-sec);margin:0 0 10px">Lade eine zuvor exportierte HTML-Datei oder eine <code>.json</code>-Datei, um Daten wiederherzustellen.</p>
+    <h3>JSON-Backup importieren</h3>
+    <p style="font-size:13px;color:var(--text-sec);margin:0 0 10px">Lade eine zuvor exportierte <code>.json</code>-Datei, um Daten wiederherzustellen.</p>
     <div class="br">
-      <label class="file-label">📂 Datei auswählen<input type="file" id="file-input" accept=".html,.json,application/json,text/html" onchange="importFile(event)"></label>
+      <label class="file-label">📂 Datei auswählen<input type="file" id="file-input" accept=".json,application/json" onchange="importFile(event)"></label>
       <span id="import-filename" style="font-size:12px;color:var(--text-sec)"></span>
     </div>
     <div class="err" id="err-import"></div>
     <div class="ok-msg" id="ok-import">Import erfolgreich!</div>
   </div>
   <div class="fc">
-    <h3>JSON exportieren</h3>
-    <p style="font-size:13px;color:var(--text-sec);margin:0 0 10px">Klassischer JSON-Export (Münzstand + Verlauf + Inventar), z.B. als Backup.</p>
+    <h3>JSON-Backup exportieren</h3>
+    <p style="font-size:13px;color:var(--text-sec);margin:0 0 10px">Lokales Backup aller Daten als <code>.json</code>-Datei. Empfehlenswert als gelegentliche Sicherung.</p>
     <div class="br" style="margin-bottom:10px">
       <button class="suc" onclick="exportJSON()">⬇ JSON herunterladen</button>
       <button class="war" onclick="genPreview()">👁 Vorschau</button>
@@ -312,16 +304,57 @@
 
 </div><!-- /wrap -->
 
-<script>
-/* EMBEDDED_DATA – wird beim HTML-Export durch aktuelle Daten ersetzt */
-const EMBEDDED_DATA = null;
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCiWhrL7MoPMjiWhnA0kewPxyMaDDHj1E4",
+  authDomain: "schatzkammer-ferri-canes.firebaseapp.com",
+  databaseURL: "https://schatzkammer-ferri-canes-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "schatzkammer-ferri-canes",
+  storageBucket: "schatzkammer-ferri-canes.firebasestorage.app",
+  messagingSenderId: "871981206259",
+  appId: "1:871981206279:web:f8f30517bb62349f5ec586"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const dataRef = ref(db, 'schatzkammer');
+
+// Firebase → App: Änderungen empfangen
+let remoteUpdatePending = false;
+onValue(dataRef, (snapshot) => {
+  const d = snapshot.val();
+  if (!d) { setStat('ok','Bereit – noch keine Daten'); updUI(); renderItems(); return; }
+  remoteUpdatePending = true;
+  state = Object.assign({pp:0,gp:0,sp:0,cp:0}, d.state||{});
+  log = Array.isArray(d.log) ? d.log : [];
+  items = Array.isArray(d.items) ? d.items : [];
+  revision = parseInt(d.revision)||0;
+  updUI(); renderItems();
+  setStat('ok','Synchronisiert · '+now());
+  remoteUpdatePending = false;
+});
+
+// App → Firebase: Daten schreiben
+window._fbSave = function(){
+  set(dataRef, {state, log, items, revision})
+    .then(()=>setStat('ok','Gespeichert '+now()))
+    .catch(e=>setStat('err','Firebase-Fehler: '+e.message));
+};
+
+setStat('ok','Verbinde…');
 </script>
+
 <script>
 const RATES={pp:1000,gp:100,sp:10,cp:1};
 const SKEY='ferri_canes_v2';
 let state={pp:0,gp:0,sp:0,cp:0};
 let log=[];
 let items=[];
+let revision=0;  // wird beim Export hochgezählt und eingebettet
 let activeFilter='alle';
 let editingId=null;
 
@@ -338,29 +371,26 @@ function setStat(mode,msg){
   document.getElementById('sstat').textContent=msg;
 }
 function saveData(){
-  try{localStorage.setItem(SKEY,JSON.stringify({state,log,items}));setStat('ok','Gespeichert '+now())}
-  catch(e){setStat('ok','Daten aktiv (kein localStorage – als HTML exportieren zum Sichern)')}
+  // Firebase (wenn verfügbar), sonst localStorage
+  if(typeof window._fbSave==='function'){
+    window._fbSave();
+  } else {
+    try{localStorage.setItem('ferri_canes_v2',JSON.stringify({state,log,items,revision}));setStat('ok','Lokal gespeichert '+now())}
+    catch(e){setStat('err','Speicherfehler')}
+  }
 }
 function loadData(){
-  // 1. Eingebettete Daten haben Vorrang (Offline-HTML-Modus)
-  if(typeof EMBEDDED_DATA!=='undefined'&&EMBEDDED_DATA){
+  // Firebase übernimmt das Laden via onValue-Listener
+  // localStorage nur als Fallback wenn Firebase nicht geladen
+  if(typeof window._fbSave!=='function'){
     try{
-      const d=EMBEDDED_DATA;
-      state=Object.assign({pp:0,gp:0,sp:0,cp:0},d.state||{});
-      log=Array.isArray(d.log)?d.log:[];
-      items=Array.isArray(d.items)?d.items:[];
-      setStat('ok','Aus Datei geladen – '+log.length+' Buchungen, '+items.length+' Items');
-      updUI();renderItems();
-      return;
-    }catch(e){}
+      const raw=localStorage.getItem('ferri_canes_v2');
+      if(raw){const d=JSON.parse(raw);state=Object.assign({pp:0,gp:0,sp:0,cp:0},d.state||{});log=Array.isArray(d.log)?d.log:[];items=Array.isArray(d.items)?d.items:[];revision=parseInt(d.revision)||0;}
+      setStat('ok',log.length||items.length?'Lokal geladen':'Bereit');
+    }catch(e){setStat('err','Kein Speicher verfügbar')}
+    updUI();renderItems();
   }
-  // 2. Fallback: localStorage (Browser, nicht file://)
-  try{
-    const raw=localStorage.getItem(SKEY);
-    if(raw){const d=JSON.parse(raw);state=Object.assign({pp:0,gp:0,sp:0,cp:0},d.state||{});log=Array.isArray(d.log)?d.log:[];items=Array.isArray(d.items)?d.items:[];}
-    setStat('ok',log.length||items.length?'Geladen (Browser-Speicher)':'Bereit – noch keine Daten');
-  }catch(e){setStat('ok','Kein lokaler Speicher – bitte als HTML exportieren.')}
-  updUI();renderItems();
+  // sonst wartet die App auf Firebase onValue
 }
 
 /* ── MÜNZEN UI ──────────────────────────────── */
@@ -600,27 +630,32 @@ function setFilter(f,btn){
 
 /* ── EXPORT / IMPORT ────────────────────────── */
 function exportHTML(){
-  // Aktuellen HTML-Quelltext lesen und EMBEDDED_DATA ersetzen
-  const dataStr=JSON.stringify({state,log,items});
-  const src=document.documentElement.outerHTML;
-  // Den Platzhalter-Block ersetzen – genau ein Match erwartet
-  const marker='const EMBEDDED_DATA = null;';
-  if(!src.includes(marker)){
-    alert('Export fehlgeschlagen: Marker nicht gefunden. Bitte melde diesen Fehler.');return;
-  }
-  const newSrc=src.replace(marker,'const EMBEDDED_DATA = '+dataStr+';');
-  const blob=new Blob([newSrc],{type:'text/html;charset=utf-8'});
+  const nextRev=revision+1;
+  const dataStr=JSON.stringify({state,log,items,revision:nextRev});
+  let src=document.documentElement.outerHTML;
+  // Marker passt entweder auf null (Erstdatei) oder auf eingebettete Daten (Folge-Export)
+  const rxNull=/const EMBEDDED_DATA = null;/;
+  const rxData=/const EMBEDDED_DATA = \{[\s\S]*?\};(?=\s*<\/script>)/;
+  const replacement='const EMBEDDED_DATA = '+dataStr+';';
+  if(rxNull.test(src)){src=src.replace(rxNull,replacement);}
+  else if(rxData.test(src)){src=src.replace(rxData,replacement);}
+  else{alert('Export fehlgeschlagen: Daten-Marker nicht gefunden.');return;}
+  const filename='Schatzkammer Ferri Canes r'+nextRev+'.html';
+  const blob=new Blob([src],{type:'text/html;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download='Schatzkammer Ferri Canes '+now().replace(/[:.]/g,'-')+'.html';
+  a.download=filename;
   a.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--success-bg);color:var(--success);padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.2)';
-  a.textContent='📥 HTML speichern – antippen!';
+  a.textContent='📥 '+filename+' – antippen!';
   document.body.appendChild(a);
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   if(!isIOS){a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},500);}
   else{setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},10000);}
-  setStat('ok','HTML exportiert – '+now());
+  // Revision lokal hochzählen und speichern
+  revision=nextRev;
+  saveData();
+  setStat('ok','Exportiert als '+filename);
 }
 function buildExportObj(){
   return{
@@ -661,29 +696,14 @@ function importFile(ev){
   const reader=new FileReader();
   reader.onload=function(e){
     try{
-      const text=e.target.result;
-      // HTML-Import: EMBEDDED_DATA aus dem Script-Tag extrahieren
-      if(file.name.endsWith('.html')||file.type==='text/html'){
-        const match=text.match(/const EMBEDDED_DATA = (\{[\s\S]*?\});/);
-        if(!match||!match[1])throw new Error('Keine eingebetteten Daten in dieser HTML-Datei gefunden.');
-        const d=JSON.parse(match[1]);
-        state=Object.assign({pp:0,gp:0,sp:0,cp:0},d.state||{});
-        log=Array.isArray(d.log)?d.log:[];
-        items=Array.isArray(d.items)?d.items:[];
-        updUI();renderItems();saveData();
-        okEl.textContent='HTML-Import erfolgreich! '+log.length+' Buchungen, '+items.length+' Items geladen.';
-        okEl.style.display='block';setTimeout(()=>okEl.style.display='none',5000);
-        return;
-      }
-      // JSON-Import (klassisch)
-      const data=JSON.parse(text);
+      const data=JSON.parse(e.target.result);
       const gt=data.geld_tracker;
       if(!gt||!gt.muenzstand)throw new Error('Kein gültiges Format (geld_tracker.muenzstand fehlt).');
       state={pp:parseInt(gt.muenzstand.pp)||0,gp:parseInt(gt.muenzstand.gp)||0,sp:parseInt(gt.muenzstand.sp)||0,cp:parseInt(gt.muenzstand.cp)||0};
       log=Array.isArray(gt.transaktionsverlauf)?gt.transaktionsverlauf:[];
       if(data.gruppeninventar&&Array.isArray(data.gruppeninventar.items))items=data.gruppeninventar.items;
       updUI();renderItems();saveData();
-      okEl.textContent='Import erfolgreich!';
+      okEl.textContent='Import erfolgreich – Daten werden zu Firebase synchronisiert.';
       okEl.style.display='block';setTimeout(()=>okEl.style.display='none',4000);
     }catch(err){errEl.textContent='Import fehlgeschlagen: '+err.message;errEl.style.display='block';}
   };
