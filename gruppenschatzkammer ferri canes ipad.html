@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Gruppenschatzkammer von Ferri Canes</title>
+<style>
+  :root{
+    --bg:#faf9f7;--card:#ffffff;--border:#e4e0da;--text:#2b2926;--text-sec:#74706a;
+    --gp:#BA7517;--sp:#5F5E5A;--cp:#993C1D;--pp:#7F77DD;
+    --success:#2f6b2f;--success-bg:#e7f3e3;--danger:#a83232;--danger-bg:#fbe7e5;
+    --warn:#8a5a00;--warn-bg:#fdf1de;--info:#1d5fa8;--info-bg:#e6f0fb;
+    --magic:#6b3fa8;--magic-bg:#f3eefb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:800px;margin:0 auto;padding:24px 16px 60px}
+  h1{font-size:20px;font-weight:600;margin:0 0 4px}
+  h3{margin:0 0 10px;font-size:15px;font-weight:600}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px}
+  .sbar{display:flex;align-items:center;gap:8px;margin-bottom:1.25rem;font-size:12px;color:var(--text-sec)}
+  .sdot{width:8px;height:8px;border-radius:50%;background:#999;flex-shrink:0}
+  .sdot.ok{background:#3a9b3a}.sdot.err{background:var(--danger)}
+  .totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:10px}
+  .cc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center}
+  .cc .lbl{font-size:12px;color:var(--text-sec);margin-bottom:4px}
+  .cc .amt{font-size:22px;font-weight:600}
+  .cc.gp .amt{color:var(--gp)}.cc.sp .amt{color:var(--sp)}.cc.cp .amt{color:var(--cp)}.cc.pp .amt{color:var(--pp)}
+  .eq{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 14px;text-align:center;font-size:13px;color:var(--text-sec);margin-bottom:1.25rem}
+  .eq span{font-weight:600;color:var(--text)}
+  .fc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem}
+  .fr{display:grid;gap:8px;margin-bottom:8px}
+  .fr2{grid-template-columns:1fr 1fr}.fr3{grid-template-columns:1fr 1fr 1fr}
+  label{font-size:13px;color:var(--text-sec);display:block;margin-bottom:4px}
+  input[type=number],input[type=text],select,textarea{width:100%;font-size:16px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--text);font-family:inherit;-webkit-appearance:none;appearance:none}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2374706a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+  input[type=number]{text-align:right}
+  textarea{resize:vertical;font-family:inherit;font-size:16px;line-height:1.5}
+  .br{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+  button{font-family:inherit;font-size:14px;cursor:pointer;border-radius:8px;padding:10px 16px;border:none;min-height:40px;-webkit-tap-highlight-color:transparent}
+  button.pri{background:var(--info-bg);color:var(--info)}
+  button.sec{background:transparent;color:var(--text-sec);border:1px solid var(--border)}
+  button.dan{background:var(--danger-bg);color:var(--danger)}
+  button.suc{background:var(--success-bg);color:var(--success)}
+  button.war{background:var(--warn-bg);color:var(--warn)}
+  button.mag{background:var(--magic-bg);color:var(--magic)}
+  button:hover{opacity:.85}
+  .tab-row{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+  .tab{background:transparent;border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:var(--text-sec)}
+  .tab.active{background:var(--card);color:var(--text);border-color:#cfc9c0;font-weight:600}
+  .err{color:var(--danger);font-size:12px;margin-top:4px;display:none}
+  .ok-msg{color:var(--success);font-size:12px;margin-top:6px;display:none}
+  .le{border:1px solid var(--border);background:var(--card);border-radius:9px;padding:9px 12px;margin-bottom:6px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}
+  .le .meta{font-size:11px;color:var(--text-sec);margin-top:2px}
+  .le .coins{font-size:12px;color:var(--text-sec);margin-top:3px}
+  .badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:6px;margin-right:4px;font-weight:500}
+  .ein{background:var(--success-bg);color:var(--success)}
+  .aus{background:var(--danger-bg);color:var(--danger)}
+  .b-mag{background:var(--magic-bg);color:var(--magic)}
+  .b-norm{background:#f0ece6;color:#5a5650}
+  .b-nid{background:var(--warn-bg);color:var(--warn)}
+  .b-id{background:var(--success-bg);color:var(--success)}
+  .b-sel-common{background:#f0ece6;color:#5a5650}
+  .b-sel-uncommon{background:#e3f0e3;color:#2a6b2a}
+  .b-sel-rare{background:#e3ecf8;color:#1a4fa0}
+  .b-sel-very{background:#f3eefb;color:#6b3fa8}
+  .b-sel-leg{background:#fdf1de;color:#8a5a00}
+  .dbtn{background:none;border:none;color:var(--text-sec);cursor:pointer;font-size:18px;padding:6px 8px;min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .dbtn:hover{color:var(--danger)}
+  .ebtn{background:none;border:none;color:var(--text-sec);cursor:pointer;font-size:18px;padding:6px 8px;min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center}
+  .ebtn:hover{color:var(--info)}
+  .empty{color:var(--text-sec);font-size:13px;text-align:center;padding:1.5rem 0}
+  .note{font-size:11px;color:var(--text-sec);background:var(--info-bg);border-radius:7px;padding:6px 10px;margin-bottom:10px}
+  .ci{font-size:12px;color:var(--text-sec);line-height:1.6}
+  .file-label{display:inline-flex;align-items:center;gap:6px;background:transparent;color:var(--text-sec);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer}
+  .file-label input{display:none}
+  code{background:#efebe4;padding:1px 5px;border-radius:4px;font-size:11px}
+  /* Inventar */
+  .inv-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .inv-filter button{font-size:11px;padding:4px 10px;border-radius:6px}
+  .inv-filter button.active{background:var(--text);color:#fff}
+  .item-row{border:1px solid var(--border);background:var(--card);border-radius:10px;margin-bottom:8px;overflow:hidden}
+  .item-head{display:grid;grid-template-columns:1fr auto;align-items:center;padding:10px 12px;cursor:pointer;gap:8px}
+  .item-head:hover{background:#faf8f5}
+  .item-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;align-items:center}
+  .item-name{font-size:14px;font-weight:600}
+  .item-loc{font-size:11px;color:var(--text-sec);margin-top:2px}
+  .item-detail{border-top:1px solid var(--border);padding:12px 14px;background:#fdfcfa;display:none}
+  .item-detail.open{display:block}
+  .item-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:13px;margin-bottom:8px}
+  .item-detail-grid .lbl{font-size:11px;color:var(--text-sec);margin-bottom:2px}
+  .item-props{font-size:13px;background:#f3f0eb;border-radius:7px;padding:8px 10px;margin-top:6px;white-space:pre-wrap;line-height:1.5}
+  .item-props.hidden-props{font-style:italic;color:var(--text-sec)}
+  .chevron{font-size:12px;color:var(--text-sec);transition:transform .2s}
+  .chevron.open{transform:rotate(180deg)}
+  .inv-btns{display:flex;gap:4px}
+  .section-h{font-size:15px;font-weight:600;margin:1.25rem 0 10px;display:flex;align-items:center;justify-content:space-between}
+  @media(max-width:480px){
+    .fr2{grid-template-columns:1fr}
+    .fr3{grid-template-columns:1fr 1fr}
+    .totals{grid-template-columns:1fr 1fr}
+    .tab-row{gap:4px}
+    .tab{padding:6px 10px;font-size:12px}
+    .wrap{padding:16px 12px 80px}
+    h1{font-size:17px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>🪙 Gruppenschatzkammer von Ferri Canes</h1>
+<p style="font-size:13px;color:var(--text-sec);margin:0 0 1rem">D&D 2024 (5.5e). Daten werden lokal in diesem Browser gespeichert.</p>
+
+<div class="topbar">
+  <div class="sbar" style="margin-bottom:0">
+    <div class="sdot" id="sdot"></div>
+    <span id="sstat">Initialisiere…</span>
+  </div>
+  <button class="dan" style="font-size:12px;padding:5px 10px" onclick="resetAll()">Alles zurücksetzen</button>
+</div>
+
+<div class="totals">
+  <div class="cc pp"><div class="lbl">Platin (PP)</div><div class="amt" id="t-pp">0</div></div>
+  <div class="cc gp"><div class="lbl">Gold (GP)</div><div class="amt" id="t-gp">0</div></div>
+  <div class="cc sp"><div class="lbl">Silber (SP)</div><div class="amt" id="t-sp">0</div></div>
+  <div class="cc cp"><div class="lbl">Kupfer (CP)</div><div class="amt" id="t-cp">0</div></div>
+</div>
+<div class="eq" id="geq">Gesamtwert: <span>0,00 GP</span></div>
+
+<div class="tab-row">
+  <button class="tab active" onclick="sw('buchung')">💰 Buchung</button>
+  <button class="tab" onclick="sw('tauschen')">⇄ Münzen tauschen</button>
+  <button class="tab" onclick="sw('inventar')">🎒 Gruppeninventar</button>
+  <button class="tab" onclick="sw('export')">📁 Import / Export</button>
+</div>
+
+<!-- BUCHUNG -->
+<div id="tab-buchung">
+  <div class="fc">
+    <h3>Neue Buchung</h3>
+    <div class="fr fr2">
+      <div><label>Art</label><select id="typ"><option value="ein">Einnahme</option><option value="aus">Ausgabe</option></select></div>
+      <div><label>Beschreibung</label><input type="text" id="desc" placeholder="z.B. Belohnung, Loot…"></div>
+    </div>
+    <div class="fr" style="grid-template-columns:repeat(5,1fr)">
+      <div><label>PP</label><input type="number" id="b-pp" min="0" value="0"></div>
+      <div><label>GP</label><input type="number" id="b-gp" min="0" value="0"></div>
+      <div><label>EP</label><input type="number" id="b-ep" min="0" value="0"></div>
+      <div><label>SP</label><input type="number" id="b-sp" min="0" value="0"></div>
+      <div><label>CP</label><input type="number" id="b-cp" min="0" value="0"></div>
+    </div>
+    <div class="note">ℹ️ EP wird beim Buchen automatisch in GP/SP umgerechnet (1 EP = 5 SP) und erscheint nicht als eigene Münzart im Bestand.</div>
+    <div class="err" id="err-b">Nicht genug Münzen vorhanden!</div>
+    <div class="br">
+      <button class="pri" onclick="addBuchung()">+ Buchen</button>
+      <button class="sec" onclick="clearForm()">Leeren</button>
+    </div>
+  </div>
+
+  <div class="section-h">
+    <span>Transaktionsverlauf</span>
+    <span id="log-count" style="font-size:12px;color:var(--text-sec);font-weight:400"></span>
+  </div>
+  <div id="log"></div>
+</div>
+
+<!-- TAUSCHEN -->
+<div id="tab-tauschen" style="display:none">
+  <div class="fc">
+    <h3>Münzen tauschen</h3>
+    <div class="ci" style="margin-bottom:12px">1 PP = 10 GP &nbsp;|&nbsp; 1 GP = 10 SP &nbsp;|&nbsp; 1 SP = 10 CP</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <label>Von</label>
+        <select id="v-coin" style="margin-bottom:6px" onchange="updConv()"><option value="pp">Platin (PP)</option><option value="gp">Gold (GP)</option><option value="sp">Silber (SP)</option><option value="cp">Kupfer (CP)</option></select>
+        <label>Menge</label>
+        <input type="number" id="v-amt" min="1" value="1" oninput="updConv()">
+      </div>
+      <div>
+        <label>In</label>
+        <select id="i-coin" style="margin-bottom:6px" onchange="updConv()"><option value="pp">Platin (PP)</option><option value="gp">Gold (GP)</option><option value="sp">Silber (SP)</option><option value="cp">Kupfer (CP)</option></select>
+        <div id="conv-prev" class="ci" style="margin-top:22px;font-size:13px;color:var(--text)">—</div>
+      </div>
+    </div>
+    <div class="err" id="err-t">Nicht genug Münzen vorhanden!</div>
+    <div class="br"><button class="pri" onclick="doConv()">⇄ Tauschen</button></div>
+  </div>
+</div>
+
+<!-- INVENTAR -->
+<div id="tab-inventar" style="display:none">
+
+  <!-- Neues Item Formular -->
+  <div class="fc" id="inv-form-box">
+    <h3 id="inv-form-title">Neues Item hinzufügen</h3>
+    <input type="hidden" id="inv-edit-id" value="">
+    <div class="fr fr2">
+      <div><label>Itemname *</label><input type="text" id="inv-name" placeholder="z.B. Rope of Climbing"></div>
+      <div><label>Typ</label>
+        <select id="inv-typ">
+          <option>Waffe</option><option>Rüstung</option><option>Fokus / Zauberstab</option>
+          <option>Trank</option><option>Schriftrolle</option><option>Wundersames Item</option>
+          <option>Munition</option><option>Werkzeug / Kit</option><option>Sonstiges</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr fr3">
+      <div><label>Magisch?</label>
+        <select id="inv-mag" onchange="toggleMagicFields()">
+          <option value="nein">Nein</option>
+          <option value="ja">Ja</option>
+        </select>
+      </div>
+      <div id="inv-sel-wrap"><label>Seltenheit</label>
+        <select id="inv-sel">
+          <option value="">—</option>
+          <option value="Common">Common</option>
+          <option value="Uncommon">Uncommon</option>
+          <option value="Rare">Rare</option>
+          <option value="Very Rare">Very Rare</option>
+          <option value="Legendary">Legendary</option>
+        </select>
+      </div>
+      <div id="inv-id-wrap"><label>Identifiziert?</label>
+        <select id="inv-id">
+          <option value="ja">Ja</option>
+          <option value="nein">Nein</option>
+        </select>
+      </div>
+    </div>
+    <div class="fr fr2">
+      <div>
+        <label>Standort</label>
+        <select id="inv-loc-sel" onchange="updLocField()">
+          <option value="Bag of Holding">Bag of Holding</option>
+          <option value="Kaelan">Kaelan</option>
+          <option value="Vyrraks">Vyrraks</option>
+          <option value="Aelar">Aelar</option>
+          <option value="Gelagert">Gelagert</option>
+          <option value="__custom__">Andere…</option>
+        </select>
+        <input type="text" id="inv-loc-txt" placeholder="Standort eingeben…" style="display:none;margin-top:6px">
+      </div>
+      <div><label>Träger / Bemerkung</label><input type="text" id="inv-traeger" placeholder="z.B. 'Kaelan trägt es aktiv'"></div>
+    </div>
+    <div class="fr fr2" id="inv-menge-wrap">
+      <div>
+        <label>Anzahl</label>
+        <input type="number" id="inv-menge" min="1" value="1">
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px">
+        <span style="font-size:12px;color:var(--text-sec)">Gilt für magische und nicht-magische Items (z.B. ×25 Bolzen, ×3 Heiltränke).</span>
+      </div>
+    </div>
+    <div>
+      <label>Eigenschaften / Beschreibung <span id="inv-props-hint" style="color:var(--text-sec);font-size:11px">(wird als ??? angezeigt solange nicht identifiziert)</span></label>
+      <textarea id="inv-props" rows="3" placeholder="z.B. +1 auf Angriffs- und Schadenswürfe, Attunement erforderlich…"></textarea>
+    </div>
+    <div><label>Notizen (nur intern / DM)</label><textarea id="inv-notes" rows="2" placeholder="z.B. Fundort, geplante Enthüllung, DM-Hinweise…"></textarea></div>
+    <div class="err" id="err-inv">Bitte einen Itemnamen eingeben.</div>
+    <div class="br">
+      <button class="pri" onclick="saveItem()">💾 Speichern</button>
+      <button class="sec" onclick="cancelEdit()">Abbrechen</button>
+    </div>
+  </div>
+
+  <!-- Filter + Liste -->
+  <div class="section-h">
+    <span>Inventar <span id="inv-count" style="font-size:12px;font-weight:400;color:var(--text-sec)"></span></span>
+    <button class="mag" style="font-size:12px;padding:5px 12px" onclick="showAddForm()">+ Item hinzufügen</button>
+  </div>
+  <div class="inv-filter">
+    <button class="sec active" onclick="setFilter('alle',this)">Alle</button>
+    <button class="sec" onclick="setFilter('magisch',this)">✨ Magisch</button>
+    <button class="sec" onclick="setFilter('nid',this)">⚠ Nicht identifiziert</button>
+    <button class="sec" onclick="setFilter('bag',this)">🎒 Bag of Holding</button>
+  </div>
+  <div id="inv-list"><div class="empty">Noch keine Items vorhanden</div></div>
+</div>
+
+<!-- EXPORT -->
+<div id="tab-export" style="display:none">
+  <div class="fc" style="border:2px solid var(--success);background:var(--success-bg)">
+    <h3 style="color:var(--success)">💾 Als HTML-Datei speichern</h3>
+    <p style="font-size:13px;color:var(--text-sec);margin:0 0 10px">Erzeugt eine neue HTML-Datei mit allen aktuellen Daten eingebettet. Diese Datei kannst du auf dem iPhone/iPad speichern und direkt in Safari öffnen – funktioniert ohne Internet und ohne Server.</p>
+    <div class="note">📱 <strong>Auf iOS:</strong> Nach dem Tippen erscheint unten ein grüner Link – antippen und „In Dateien laden" wählen. Die neue Datei enthält dann den aktuellen Stand.</div>
+    <div class="br">
+      <button class="suc" style="font-size:15px;padding:12px 24px" onclick="exportHTML()">💾 HTML-Datei erzeugen</button>
+    </div>
+  </div>
+  <div class="fc">
+    <h3>HTML-Datei importieren</h3>
+    <p style="font-size:13px;color:var(--text-sec);margin:0 0 10px">Lade eine zuvor exportierte HTML-Datei oder eine <code>.json</code>-Datei, um Daten wiederherzustellen.</p>
+    <div class="br">
+      <label class="file-label">📂 Datei auswählen<input type="file" id="file-input" accept=".html,.json,application/json,text/html" onchange="importFile(event)"></label>
+      <span id="import-filename" style="font-size:12px;color:var(--text-sec)"></span>
+    </div>
+    <div class="err" id="err-import"></div>
+    <div class="ok-msg" id="ok-import">Import erfolgreich!</div>
+  </div>
+  <div class="fc">
+    <h3>JSON exportieren</h3>
+    <p style="font-size:13px;color:var(--text-sec);margin:0 0 10px">Klassischer JSON-Export (Münzstand + Verlauf + Inventar), z.B. als Backup.</p>
+    <div class="br" style="margin-bottom:10px">
+      <button class="suc" onclick="exportJSON()">⬇ JSON herunterladen</button>
+      <button class="war" onclick="genPreview()">👁 Vorschau</button>
+    </div>
+    <textarea id="export-area" rows="12" readonly style="display:none;font-family:'SF Mono',Consolas,monospace;font-size:11px"></textarea>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+/* EMBEDDED_DATA – wird beim HTML-Export durch aktuelle Daten ersetzt */
+const EMBEDDED_DATA = null;
+</script>
+<script>
+const RATES={pp:1000,gp:100,sp:10,cp:1};
+const SKEY='ferri_canes_v2';
+let state={pp:0,gp:0,sp:0,cp:0};
+let log=[];
+let items=[];
+let activeFilter='alle';
+let editingId=null;
+
+/* ── UTIL ───────────────────────────────────── */
+function toCP(s){return(s.pp||0)*1000+(s.gp||0)*100+(s.sp||0)*10+(s.cp||0)}
+function fmtCoins(e){return['pp','gp','sp','cp'].filter(c=>e[c]&&e[c]!==0).map(c=>(e[c]>0?'+':'')+e[c]+' '+c.toUpperCase()).join(' · ')}
+function now(){return new Date().toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+/* ── STORAGE ────────────────────────────────── */
+function setStat(mode,msg){
+  document.getElementById('sdot').className='sdot'+(mode==='ok'?' ok':mode==='err'?' err':'');
+  document.getElementById('sstat').textContent=msg;
+}
+function saveData(){
+  try{localStorage.setItem(SKEY,JSON.stringify({state,log,items}));setStat('ok','Gespeichert '+now())}
+  catch(e){setStat('ok','Daten aktiv (kein localStorage – als HTML exportieren zum Sichern)')}
+}
+function loadData(){
+  // 1. Eingebettete Daten haben Vorrang (Offline-HTML-Modus)
+  if(typeof EMBEDDED_DATA!=='undefined'&&EMBEDDED_DATA){
+    try{
+      const d=EMBEDDED_DATA;
+      state=Object.assign({pp:0,gp:0,sp:0,cp:0},d.state||{});
+      log=Array.isArray(d.log)?d.log:[];
+      items=Array.isArray(d.items)?d.items:[];
+      setStat('ok','Aus Datei geladen – '+log.length+' Buchungen, '+items.length+' Items');
+      updUI();renderItems();
+      return;
+    }catch(e){}
+  }
+  // 2. Fallback: localStorage (Browser, nicht file://)
+  try{
+    const raw=localStorage.getItem(SKEY);
+    if(raw){const d=JSON.parse(raw);state=Object.assign({pp:0,gp:0,sp:0,cp:0},d.state||{});log=Array.isArray(d.log)?d.log:[];items=Array.isArray(d.items)?d.items:[];}
+    setStat('ok',log.length||items.length?'Geladen (Browser-Speicher)':'Bereit – noch keine Daten');
+  }catch(e){setStat('ok','Kein lokaler Speicher – bitte als HTML exportieren.')}
+  updUI();renderItems();
+}
+
+/* ── MÜNZEN UI ──────────────────────────────── */
+function updUI(){
+  ['pp','gp','sp','cp'].forEach(c=>document.getElementById('t-'+c).textContent=state[c].toLocaleString());
+  const total=toCP(state);
+  document.getElementById('geq').innerHTML='Gesamtwert: <span>'+(total/100).toFixed(2).replace('.',',')+' GP</span>';
+  document.getElementById('log-count').textContent=log.length?log.length+' Einträge':'';
+  renderLog();updConv();
+}
+function renderLog(){
+  const el=document.getElementById('log');
+  if(!log.length){el.innerHTML='<div class="empty">Noch keine Transaktionen</div>';return}
+  el.innerHTML=[...log].reverse().map((e,ri)=>{
+    const idx=log.length-1-ri;
+    return'<div class="le"><div><span class="badge '+(e.typ==='ein'?'ein':'aus')+'">'+(e.typ==='ein'?'Einnahme':'Ausgabe')+'</span><strong style="font-size:13px">'+esc(e.desc||'–')+'</strong><div class="coins">'+fmtCoins(e)+'</div><div class="meta">'+e.time+'</div></div><button class="dbtn" onclick="delEntry('+idx+')" title="Löschen">🗑</button></div>'
+  }).join('')
+}
+function clearForm(){
+  ['pp','gp','ep','sp','cp'].forEach(c=>document.getElementById('b-'+c).value=0);
+  document.getElementById('desc').value='';
+  document.getElementById('err-b').style.display='none';
+}
+function addBuchung(){
+  const typ=document.getElementById('typ').value;
+  const desc=document.getElementById('desc').value.trim();
+  const ep=Math.max(0,parseInt(document.getElementById('b-ep').value)||0);
+  const coins={pp:Math.max(0,parseInt(document.getElementById('b-pp').value)||0),gp:Math.max(0,parseInt(document.getElementById('b-gp').value)||0),sp:Math.max(0,parseInt(document.getElementById('b-sp').value)||0),cp:Math.max(0,parseInt(document.getElementById('b-cp').value)||0)};
+  if(ep>0){const c=ep*50;coins.gp+=Math.floor(c/100);coins.sp+=Math.floor((c%100)/10);coins.cp+=c%10;}
+  if(toCP(coins)===0)return;
+  if(typ==='aus'){
+    const ns={pp:state.pp-coins.pp,gp:state.gp-coins.gp,sp:state.sp-coins.sp,cp:state.cp-coins.cp};
+    if(Object.values(ns).some(v=>v<0)){document.getElementById('err-b').style.display='block';return}
+    Object.assign(state,ns);
+  }else{['pp','gp','sp','cp'].forEach(c=>state[c]+=coins[c])}
+  document.getElementById('err-b').style.display='none';
+  const f=typ==='ein'?1:-1;
+  log.push({typ,desc:desc||'Buchung',time:now(),pp:f*coins.pp,gp:f*coins.gp,sp:f*coins.sp,cp:f*coins.cp});
+  clearForm();updUI();saveData();
+}
+function delEntry(idx){
+  const e=log[idx];
+  const ns={pp:state.pp-e.pp,gp:state.gp-e.gp,sp:state.sp-e.sp,cp:state.cp-e.cp};
+  if(Object.values(ns).some(v=>v<0)){alert('Löschen würde negative Münzen erzeugen!');return}
+  Object.assign(state,ns);log.splice(idx,1);updUI();saveData();
+}
+
+/* ── MÜNZTAUSCH ─────────────────────────────── */
+function updConv(){
+  const from=document.getElementById('v-coin').value,to=document.getElementById('i-coin').value;
+  const amt=parseInt(document.getElementById('v-amt').value)||0;
+  if(from===to){document.getElementById('conv-prev').textContent='Gleiche Münzart';return}
+  const res=amt*(RATES[from]/RATES[to]);
+  document.getElementById('conv-prev').textContent=Number.isInteger(res)?amt+' '+from.toUpperCase()+' → '+res+' '+to.toUpperCase():amt+' '+from.toUpperCase()+' → '+res.toFixed(2)+' '+to.toUpperCase()+' (kein ganzer Wert)';
+}
+function doConv(){
+  const from=document.getElementById('v-coin').value,to=document.getElementById('i-coin').value;
+  const amt=parseInt(document.getElementById('v-amt').value)||0;
+  const err=document.getElementById('err-t');
+  if(from===to||amt<=0)return;
+  const res=amt*(RATES[from]/RATES[to]);
+  if(!Number.isInteger(res)){err.textContent='Kein glatter Tausch möglich!';err.style.display='block';return}
+  if(state[from]<amt){err.textContent='Nicht genug '+from.toUpperCase()+'!';err.style.display='block';return}
+  err.style.display='none';
+  state[from]-=amt;state[to]+=res;
+  const entry={typ:'ein',desc:'Tausch: '+amt+' '+from.toUpperCase()+' → '+res+' '+to.toUpperCase(),time:now(),pp:0,gp:0,sp:0,cp:0};
+  entry[from]-=amt;entry[to]+=res;
+  log.push(entry);updUI();saveData();
+}
+
+/* ── INVENTAR ───────────────────────────────── */
+function toggleMagicFields(){
+  const mag=document.getElementById('inv-mag').value==='ja';
+  document.getElementById('inv-sel-wrap').style.opacity=mag?'1':'0.4';
+  document.getElementById('inv-id-wrap').style.opacity=mag?'1':'0.4';
+  document.getElementById('inv-props-hint').style.display=mag?'inline':'none';
+  document.getElementById('inv-menge-wrap').style.display='grid';
+}function updLocField(){
+  const sel=document.getElementById('inv-loc-sel').value;
+  document.getElementById('inv-loc-txt').style.display=sel==='__custom__'?'block':'none';
+}
+function getLocValue(){
+  const sel=document.getElementById('inv-loc-sel').value;
+  return sel==='__custom__'?document.getElementById('inv-loc-txt').value.trim()||'Unbekannt':sel;
+}
+function setLocField(val){
+  const opts=['Bag of Holding','Kaelan','Vyrraks','Aelar','Gelagert'];
+  if(opts.includes(val)){
+    document.getElementById('inv-loc-sel').value=val;
+    document.getElementById('inv-loc-txt').style.display='none';
+  }else{
+    document.getElementById('inv-loc-sel').value='__custom__';
+    document.getElementById('inv-loc-txt').style.display='block';
+    document.getElementById('inv-loc-txt').value=val;
+  }
+}
+function showAddForm(){
+  editingId=null;
+  document.getElementById('inv-form-title').textContent='Neues Item hinzufügen';
+  document.getElementById('inv-edit-id').value='';
+  ['inv-name','inv-traeger','inv-props','inv-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inv-typ').value='Sonstiges';
+  document.getElementById('inv-mag').value='nein';
+  document.getElementById('inv-sel').value='';
+  document.getElementById('inv-id').value='ja';
+  document.getElementById('inv-menge').value=1;
+  setLocField('Bag of Holding');
+  toggleMagicFields();
+  document.getElementById('err-inv').style.display='none';
+  setTimeout(()=>document.getElementById('inv-form-box').scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+}
+function cancelEdit(){
+  editingId=null;
+  document.getElementById('inv-form-title').textContent='Neues Item hinzufügen';
+  ['inv-name','inv-traeger','inv-props','inv-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('inv-mag').value='nein';
+  document.getElementById('inv-sel').value='';
+  document.getElementById('inv-id').value='ja';
+  document.getElementById('inv-menge').value=1;
+  setLocField('Bag of Holding');
+  toggleMagicFields();
+  document.getElementById('err-inv').style.display='none';
+}
+function saveItem(){
+  const name=document.getElementById('inv-name').value.trim();
+  if(!name){document.getElementById('err-inv').style.display='block';return}
+  document.getElementById('err-inv').style.display='none';
+  const mag=document.getElementById('inv-mag').value==='ja';
+  const item={
+    id:editingId||uid(),
+    name,
+    typ:document.getElementById('inv-typ').value,
+    magisch:mag,
+    menge:Math.max(1,parseInt(document.getElementById('inv-menge').value)||1),
+    seltenheit:mag?document.getElementById('inv-sel').value:'',
+    identifiziert:mag?document.getElementById('inv-id').value==='ja':true,
+    standort:getLocValue(),
+    traeger:document.getElementById('inv-traeger').value.trim(),
+    eigenschaften:document.getElementById('inv-props').value.trim(),
+    notizen:document.getElementById('inv-notes').value.trim(),
+    erstellt:editingId?null:now(),
+    geaendert:now()
+  };
+  if(editingId){
+    const idx=items.findIndex(i=>i.id===editingId);
+    if(idx>-1){item.erstellt=items[idx].erstellt;items[idx]=item}
+  }else{items.push(item)}
+  cancelEdit();renderItems();saveData();
+}
+function editItem(id){
+  const item=items.find(i=>i.id===id);if(!item)return;
+  editingId=id;
+  document.getElementById('inv-form-title').textContent='Item bearbeiten';
+  document.getElementById('inv-name').value=item.name;
+  document.getElementById('inv-typ').value=item.typ;
+  document.getElementById('inv-mag').value=item.magisch?'ja':'nein';
+  document.getElementById('inv-sel').value=item.seltenheit||'';
+  document.getElementById('inv-id').value=item.identifiziert?'ja':'nein';
+  setLocField(item.standort||'Bag of Holding');
+  document.getElementById('inv-traeger').value=item.traeger||'';
+  document.getElementById('inv-props').value=item.eigenschaften||'';
+  document.getElementById('inv-notes').value=item.notizen||'';
+  document.getElementById('inv-menge').value=item.menge||1;
+  toggleMagicFields();
+  sw('inventar');
+  setTimeout(()=>document.getElementById('inv-form-box').scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+}
+function delItem(id){
+  if(!confirm('Item wirklich löschen?'))return;
+  items=items.filter(i=>i.id!==id);
+  renderItems();saveData();
+}
+function toggleDetail(id){
+  const d=document.getElementById('det-'+id);
+  const c=document.getElementById('chv-'+id);
+  if(!d)return;
+  const open=d.classList.toggle('open');
+  if(c)c.classList.toggle('open',open);
+}
+
+const SEL_CLS={Common:'b-sel-common',Uncommon:'b-sel-uncommon',Rare:'b-sel-rare','Very Rare':'b-sel-very',Legendary:'b-sel-leg'};
+
+function renderItems(){
+  const el=document.getElementById('inv-list');
+  let list=items;
+  if(activeFilter==='magisch')list=items.filter(i=>i.magisch);
+  else if(activeFilter==='nid')list=items.filter(i=>i.magisch&&!i.identifiziert);
+  else if(activeFilter==='bag')list=items.filter(i=>i.standort==='Bag of Holding');
+  document.getElementById('inv-count').textContent='('+items.length+' Items)';
+  if(!list.length){el.innerHTML='<div class="empty">'+(activeFilter==='alle'?'Noch keine Items vorhanden':'Keine Items für diesen Filter')+'</div>';return}
+  el.innerHTML=list.map(item=>{
+    const menge=item.menge&&item.menge>1?item.menge:1;
+    const mengeBadge=menge>1?`<span class="badge" style="background:#e8f0fe;color:#1a56db">×${menge}</span>`:'';
+    const selBadge=item.magisch&&item.seltenheit?`<span class="badge ${SEL_CLS[item.seltenheit]||'b-sel-common'}">${esc(item.seltenheit)}</span>`:'';
+    const magBadge=item.magisch?'<span class="badge b-mag">✨ Magisch</span>':'<span class="badge b-norm">Nicht magisch</span>';
+    const idBadge=item.magisch?(item.identifiziert?'<span class="badge b-id">✔ Identifiziert</span>':'<span class="badge b-nid">⚠ Nicht identifiziert</span>'):'';
+    const propsText=item.magisch&&!item.identifiziert?'<em style="color:var(--text-sec)">??? – noch nicht identifiziert</em>':(item.eigenschaften?esc(item.eigenschaften).replace(/\n/g,'<br>'):'<em style="color:var(--text-sec)">Keine Eigenschaften eingetragen</em>');
+    const notesBlock=item.notizen?`<div style="margin-top:8px"><div class="lbl">Notizen (intern)</div><div class="item-props" style="background:#fff9ee">${esc(item.notizen).replace(/\n/g,'<br>')}</div></div>`:'';
+    return`<div class="item-row">
+  <div class="item-head" onclick="toggleDetail('${item.id}')">
+    <div>
+      <div class="item-name">${esc(item.name)}${menge>1?` <span style="font-size:13px;font-weight:400;color:var(--text-sec)">×${menge}</span>`:''}</div>
+      <div class="item-meta">${magBadge}${selBadge}${idBadge}${mengeBadge}<span class="badge b-norm">${esc(item.typ)}</span></div>
+      <div class="item-loc">📍 ${esc(item.standort||'—')}${item.traeger?' · '+esc(item.traeger):''}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px">
+      <div class="inv-btns">
+        <button class="ebtn" onclick="event.stopPropagation();editItem('${item.id}')" title="Bearbeiten">✏️</button>
+        <button class="dbtn" onclick="event.stopPropagation();delItem('${item.id}')" title="Löschen">🗑</button>
+      </div>
+      <span class="chevron" id="chv-${item.id}">▼</span>
+    </div>
+  </div>
+  <div class="item-detail" id="det-${item.id}">
+    <div class="item-detail-grid">
+      <div><div class="lbl">Typ</div>${esc(item.typ)}</div>
+      <div><div class="lbl">Anzahl</div>${menge}</div>
+      <div><div class="lbl">Seltenheit</div>${item.seltenheit||'—'}</div>
+      <div><div class="lbl">Standort</div>${esc(item.standort||'—')}</div>
+      <div><div class="lbl">Träger / Bemerkung</div>${item.traeger?esc(item.traeger):'—'}</div>
+      <div><div class="lbl">Hinzugefügt</div>${item.erstellt||'—'}</div>
+      <div><div class="lbl">Zuletzt geändert</div>${item.geaendert||'—'}</div>
+    </div>
+    <div class="lbl">Eigenschaften</div>
+    <div class="item-props">${propsText}</div>
+    ${notesBlock}
+  </div>
+</div>`}).join('');
+}
+
+function setFilter(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('.inv-filter button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderItems();
+}
+
+/* ── EXPORT / IMPORT ────────────────────────── */
+function exportHTML(){
+  // Aktuellen HTML-Quelltext lesen und EMBEDDED_DATA ersetzen
+  const dataStr=JSON.stringify({state,log,items});
+  const src=document.documentElement.outerHTML;
+  // Den Platzhalter-Block ersetzen – genau ein Match erwartet
+  const marker='const EMBEDDED_DATA = null;';
+  if(!src.includes(marker)){
+    alert('Export fehlgeschlagen: Marker nicht gefunden. Bitte melde diesen Fehler.');return;
+  }
+  const newSrc=src.replace(marker,'const EMBEDDED_DATA = '+dataStr+';');
+  const blob=new Blob([newSrc],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='Schatzkammer Ferri Canes '+now().replace(/[:.]/g,'-')+'.html';
+  a.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--success-bg);color:var(--success);padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,.2)';
+  a.textContent='📥 HTML speichern – antippen!';
+  document.body.appendChild(a);
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(!isIOS){a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},500);}
+  else{setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},10000);}
+  setStat('ok','HTML exportiert – '+now());
+}
+function buildExportObj(){
+  return{
+    meta:{erstellt:now(),zweck:"Gruppenschatzkammer von Ferri Canes – Münzstand, Verlauf und Inventar"},
+    hausregeln:["EP gestrichen – alle EP-Werte als GP × 0,5"],
+    geld_tracker:{stand:now(),muenzstand:{pp:state.pp,gp:state.gp,sp:state.sp,cp:state.cp},gesamtwert_gp:parseFloat((toCP(state)/100).toFixed(2)),ep_gestrichen:true,ep_umrechnung:"1 EP = 0,5 GP = 5 SP",transaktionsverlauf:log},
+    gruppeninventar:{stand:now(),anzahl_items:items.length,items}
+  };
+}
+function genPreview(){
+  const area=document.getElementById('export-area');
+  area.value=JSON.stringify(buildExportObj(),null,2);
+  area.style.display='block';
+}
+function exportJSON(){
+  const json=JSON.stringify(buildExportObj(),null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  // iOS Safari blockiert programmatisches .click() auf versteckten Links;
+  // sichtbaren Link erzeugen und nach kurzer Verzögerung klicken
+  const a=document.createElement('a');
+  a.href=url;a.download='Kampagne Gruppenschatzkammer.json';
+  a.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--success-bg);color:var(--success);padding:10px 20px;border-radius:10px;font-size:14px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.2)';
+  a.textContent='📥 JSON speichern';
+  document.body.appendChild(a);
+  // Desktop: direkter Click; iOS: Link sichtbar lassen, User tippt selbst
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
+  if(!isIOS){a.click();document.body.removeChild(a);URL.revokeObjectURL(url);}
+  else{setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},8000);}
+  setStat('ok','Exportiert '+now());
+}
+function importFile(ev){
+  const file=ev.target.files&&ev.target.files[0];
+  const errEl=document.getElementById('err-import'),okEl=document.getElementById('ok-import');
+  errEl.style.display='none';okEl.style.display='none';
+  if(!file)return;
+  document.getElementById('import-filename').textContent=file.name;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const text=e.target.result;
+      // HTML-Import: EMBEDDED_DATA aus dem Script-Tag extrahieren
+      if(file.name.endsWith('.html')||file.type==='text/html'){
+        const match=text.match(/const EMBEDDED_DATA = (\{[\s\S]*?\});/);
+        if(!match||!match[1])throw new Error('Keine eingebetteten Daten in dieser HTML-Datei gefunden.');
+        const d=JSON.parse(match[1]);
+        state=Object.assign({pp:0,gp:0,sp:0,cp:0},d.state||{});
+        log=Array.isArray(d.log)?d.log:[];
+        items=Array.isArray(d.items)?d.items:[];
+        updUI();renderItems();saveData();
+        okEl.textContent='HTML-Import erfolgreich! '+log.length+' Buchungen, '+items.length+' Items geladen.';
+        okEl.style.display='block';setTimeout(()=>okEl.style.display='none',5000);
+        return;
+      }
+      // JSON-Import (klassisch)
+      const data=JSON.parse(text);
+      const gt=data.geld_tracker;
+      if(!gt||!gt.muenzstand)throw new Error('Kein gültiges Format (geld_tracker.muenzstand fehlt).');
+      state={pp:parseInt(gt.muenzstand.pp)||0,gp:parseInt(gt.muenzstand.gp)||0,sp:parseInt(gt.muenzstand.sp)||0,cp:parseInt(gt.muenzstand.cp)||0};
+      log=Array.isArray(gt.transaktionsverlauf)?gt.transaktionsverlauf:[];
+      if(data.gruppeninventar&&Array.isArray(data.gruppeninventar.items))items=data.gruppeninventar.items;
+      updUI();renderItems();saveData();
+      okEl.textContent='Import erfolgreich!';
+      okEl.style.display='block';setTimeout(()=>okEl.style.display='none',4000);
+    }catch(err){errEl.textContent='Import fehlgeschlagen: '+err.message;errEl.style.display='block';}
+  };
+  reader.onerror=function(){errEl.textContent='Datei konnte nicht gelesen werden.';errEl.style.display='block';};
+  reader.readAsText(file);
+}
+
+/* ── TABS ───────────────────────────────────── */
+function sw(name){
+  ['buchung','tauschen','inventar','export'].forEach(n=>document.getElementById('tab-'+n).style.display=n===name?'block':'none');
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['buchung','tauschen','inventar','export'][i]===name));
+}
+
+/* ── RESET ──────────────────────────────────── */
+function resetAll(){
+  if(!confirm('Wirklich alles zurücksetzen – Münzstand, Verlauf UND Inventar? Kann nicht rückgängig gemacht werden.'))return;
+  state={pp:0,gp:0,sp:0,cp:0};log=[];items=[];clearForm();cancelEdit();updUI();renderItems();saveData();
+}
+
+/* ── INIT ───────────────────────────────────── */
+toggleMagicFields();
+loadData();
+</script>
+</body>
+</html>
