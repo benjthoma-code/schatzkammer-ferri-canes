@@ -340,23 +340,39 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const dataRef = ref(db, 'schatzkammer');
 
-// Firebase → App: Änderungen empfangen
-let remoteUpdatePending = false;
+// Flag: verhindert dass leere Anfangsdaten Firebase überschreiben
+let fbInitialized = false;
+
+// Firebase → App: nur lesen, niemals zurückschreiben
 onValue(dataRef, (snapshot) => {
   const d = snapshot.val();
-  if (!d) { setStat('ok','Bereit – noch keine Daten'); updUI(); renderItems(); return; }
-  remoteUpdatePending = true;
+  if (!d || (!d.log && !d.items && !d.state)) {
+    // Firebase ist leer – App-Stand unangetastet lassen
+    setStat('ok', fbInitialized ? 'Synchronisiert · '+now() : 'Bereit – noch keine Daten');
+    if (!fbInitialized) { updUI(); renderItems(); }
+    fbInitialized = true;
+    return;
+  }
+  // Nur übernehmen wenn Firebase tatsächlich Daten hat
+  const hasData = (d.log && d.log.length) || (d.items && d.items.length) ||
+    (d.state && (d.state.pp||d.state.gp||d.state.sp||d.state.cp));
+  if (!hasData && fbInitialized) {
+    // Firebase wurde geleert – nicht automatisch übernehmen
+    setStat('err', 'Firebase-Daten fehlen – bitte Backup importieren');
+    return;
+  }
   state = Object.assign({pp:0,gp:0,sp:0,cp:0}, d.state||{});
   log = Array.isArray(d.log) ? d.log : [];
   items = Array.isArray(d.items) ? d.items : [];
   revision = parseInt(d.revision)||0;
+  fbInitialized = true;
   updUI(); renderItems();
-  setStat('ok','Synchronisiert · '+now());
-  remoteUpdatePending = false;
+  setStat('ok', 'Synchronisiert · '+now());
 });
 
-// App → Firebase: Daten schreiben
+// App → Firebase: nur nach expliziter User-Aktion aufrufen
 window._fbSave = function(){
+  if (!fbInitialized) { setStat('err','Firebase noch nicht bereit'); return; }
   set(dataRef, {state, log, items, revision})
     .then(()=>setStat('ok','Gespeichert '+now()))
     .catch(e=>setStat('err','Firebase-Fehler: '+e.message));
