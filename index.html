@@ -287,6 +287,9 @@
         <option>Trank</option><option>Schriftrolle</option><option>Wundersames Item</option>
         <option>Munition</option><option>Werkzeug / Kit</option><option>Gegenstände zum Verkauf</option><option>Sonstiges</option>
       </select>
+      <select id="filter-standort" onchange="applyFilter()" style="font-size:13px;padding:5px 28px 5px 9px;width:auto;min-width:140px">
+        <option value="">Alle Standorte</option>
+      </select>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="sec" id="fbtn-magisch" onclick="toggleFBtn('magisch',this)">✨ Magisch</button>
@@ -391,6 +394,7 @@ let revision=0;  // wird beim Export hochgezählt und eingebettet
 let filterTyp='';
 let filterMagisch=false;
 let filterNid=false;
+let filterStandort='';
 let editingId=null;
 
 /* ── UTIL ───────────────────────────────────── */
@@ -613,12 +617,19 @@ function toggleDetail(id){
 const SEL_CLS={Common:'b-sel-common',Uncommon:'b-sel-uncommon',Rare:'b-sel-rare','Very Rare':'b-sel-very',Legendary:'b-sel-leg'};
 
 function renderItems(){
+  // Standort-Dropdown dynamisch aus vorhandenen Items befüllen
+  const standortEl=document.getElementById('filter-standort');
+  const currentStandort=standortEl.value;
+  const standorte=[...new Set(items.map(i=>i.standort).filter(Boolean))].sort();
+  standortEl.innerHTML='<option value="">Alle Standorte</option>'+standorte.map(s=>`<option${s===currentStandort?' selected':''}>${s}</option>`).join('');
+
   const el=document.getElementById('inv-list');
   let list=items;
   if(filterTyp) list=list.filter(i=>i.typ===filterTyp);
+  if(filterStandort) list=list.filter(i=>i.standort===filterStandort);
   if(filterMagisch) list=list.filter(i=>i.magisch);
   if(filterNid) list=list.filter(i=>i.magisch&&!i.identifiziert);
-  const activeFilters=filterTyp||filterMagisch||filterNid;
+  const activeFilters=filterTyp||filterMagisch||filterNid||filterStandort;
   document.getElementById('inv-count').textContent='('+items.length+' Items)';
   if(!list.length){el.innerHTML='<div class="empty">'+(activeFilters?'Keine Items für diesen Filter':'Noch keine Items vorhanden')+'</div>';return}
   el.innerHTML=list.map(item=>{
@@ -664,6 +675,7 @@ function renderItems(){
 
 function applyFilter(){
   filterTyp=document.getElementById('filter-typ').value;
+  filterStandort=document.getElementById('filter-standort').value;
   renderItems();
 }
 function toggleFBtn(type,btn){
